@@ -6,16 +6,19 @@
 //@version=5
 indicator("Scalping money management 1.0.0", overlay = true)
 
-float deposit = input.float(defval = 1000, title = "Deposit")
-float lossPerTrade = input.float(defval = 1, title = "Maximum risk per trade, %")
-float commission = input.float(defval = 0.1, title = "Commission and other, %", tooltip = "Add to stoploss")
+// risk management
+var string riskManagementGroup = "risk management" 
+float deposit = input.float(defval = 1000, title = "Deposit", group = riskManagementGroup)
+float lossPerTrade = input.float(defval = 1, title = "Maximum risk per trade, %", group = riskManagementGroup)
+float commission = input.float(defval= 0.1, title = "Commission and other, %", tooltip = "Add to stoploss", group = riskManagementGroup)
 
 // panel
-string position = input.string(defval = position.bottom_right, options = [position.bottom_right, position.bottom_center, position.bottom_left, position.top_right, position.top_center, position.top_left], group = "panel")
-color tableBgColor = input.color(defval = color.new(#363636, 50) , title = "Background color", group = "panel")
-color tableTextColor = input.color(defval = color.white, title = "Text color", group = "panel")
-bool showTableTitle = input.bool(defval = true, title = "Show titles", group = "panel")
-bool showPips = input.bool(defval = true, title = "Show stop loss in pips", group = "panel")
+var string infoPanelSettingsGroup = "info panel settings"
+string position = input.string(defval = position.bottom_right, options = [position.bottom_right, position.bottom_center, position.bottom_left, position.top_right, position.top_center, position.top_left], group = infoPanelSettingsGroup)
+color tableBgColor = input.color(defval = color.new(#363636, 50) , title = "Background color", group = infoPanelSettingsGroup)
+color tableTextColor = input.color(defval = color.white, title = "Text color", group = infoPanelSettingsGroup)
+bool showTableTitle = input.bool(defval = true, title = "Show titles", group = infoPanelSettingsGroup)
+bool showPips = input.bool(defval = true, title = "Show stop loss in pips", group = infoPanelSettingsGroup)
 
 // ATR SL
 bool showAtrSL = input.bool(defval = true, title = "Show ATR stop loss", group = "Stop loss by ATR")
@@ -53,6 +56,20 @@ float stopLoss9 = input.float(defval = 0.9, title = "Stop loss, %", group = "Sto
 bool showStopLoss10 = input.bool(defval = true, title = "", group = "Stoploss", inline = "l10")
 float stopLoss10 = input.float(defval = 1, title = "Stop loss, %", group = "Stoploss", inline = "l10")
 
+// Money to lots
+var string volumeToLotsGroup = "Money to lots"
+bool showMoneyLevel1 = input.bool(defval = true, title = "", group = volumeToLotsGroup, inline = "moneyLevel1")
+int moneyLevel1 = input.int(defval = 100000, title = "Volume in money 1", group = volumeToLotsGroup, inline = "moneyLevel1")
+
+bool showMoneyLevel2 = input.bool(defval = true, title = "", group = volumeToLotsGroup, inline = "moneyLevel2")
+int moneyLevel2 = input.int(defval = 500000, title = "Volume in money 2", group = volumeToLotsGroup, inline = "moneyLevel2")
+
+string moneyToLotsPanelPosition = input.string(
+  title = "Panel position",
+  defval = position.bottom_center,
+  options = [position.bottom_right, position.bottom_center, position.bottom_left, position.middle_right, position.middle_center, position.middle_left, position.top_right, position.top_center, position.top_left], 
+  group = volumeToLotsGroup)
+
 type modelType
     float sl
     float money
@@ -88,6 +105,7 @@ var table indicatorPanel = table.new(
   columns = 3,
   rows = 15)
 
+//#region Stoploss size
 if barstate.islast
     if showTableTitle
         table.cell(table_id = indicatorPanel, column = 0, row = 0, text = "SL", bgcolor = tableBgColor, text_color = tableTextColor, tooltip = "Stop loss in %")
@@ -125,3 +143,37 @@ if barstate.islast
           text_color = model.textColor, 
           tooltip = "money", 
           text_halign = text.align_left)
+//#endregion
+
+//#region Money to lots
+moneyToLots(int money) =>
+  money / close
+
+var table moneyToLotsPanel = table.new(
+  position = moneyToLotsPanelPosition,
+  columns = 3,
+  rows = 15)
+
+if barstate.islast
+    if showMoneyLevel1
+        int lotsLevel1 = math.round(moneyToLots(moneyLevel1))
+        table.cell(
+          table_id = moneyToLotsPanel,
+          column = 0, 
+          row = 0, 
+          text = str.format("💵{0,number} = {1,number} Lots", moneyLevel1, lotsLevel1), 
+          bgcolor = tableBgColor, 
+          text_color = tableTextColor, 
+          tooltip = "")
+    if showMoneyLevel2
+        int lotsLevel2 = math.round(moneyToLots(moneyLevel2))
+        table.cell(
+          table_id = moneyToLotsPanel,
+          column = 0, 
+          row = 1, 
+          text = str.format("💵{0,number} = {1,number} Lots", moneyLevel2, lotsLevel2), 
+          bgcolor = tableBgColor, 
+          text_color = tableTextColor, 
+          tooltip = "")
+
+//#endregion
